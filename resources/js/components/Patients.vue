@@ -63,6 +63,12 @@
             </svg>
             Editar
           </button>
+          <button @click="openConsultationModalFromCard(patient)" class="action-btn consult-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Consulta
+          </button>
           <button @click="deletePatient(patient.id)" class="action-btn delete-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -229,7 +235,7 @@
 
           <div class="detail-section">
             <h3>Historial Médico</h3>
-            <button @click="showMedicalHistory" class="add-history-btn">
+            <button @click="openConsultationModal" class="add-history-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -249,6 +255,93 @@
         </div>
       </div>
     </div>
+
+    <!-- Consultation Modal -->
+    <div v-if="showConsultationModal" class="modal-overlay">
+      <div class="modal-content large-modal">
+        <div class="modal-header">
+          <h2>Nueva Consulta Médica</h2>
+          <button @click="closeConsultationModal" class="close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="saveConsultation" class="modal-form">
+          <div class="form-section">
+            <h3>Información de la Consulta</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Motivo de Consulta</label>
+                <textarea v-model="consultationForm.motivo_consulta" rows="3" placeholder="Describa el motivo de la consulta"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Enfermedad Actual</label>
+                <textarea v-model="consultationForm.enfermedad_actual" rows="3" placeholder="Describa la enfermedad actual"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Antecedentes</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Antecedentes Familiares</label>
+                <textarea v-model="consultationForm.antecedentes_familiares" rows="3" placeholder="Antecedentes médicos familiares"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Antecedentes Personales</label>
+                <textarea v-model="consultationForm.antecedentes_personales" rows="3" placeholder="Antecedentes médicos personales"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Exámenes</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Examen Neurológico</label>
+                <textarea v-model="consultationForm.examen_neurologico" rows="3" placeholder="Resultados del examen neurológico"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Examen de Laboratorio</label>
+                <textarea v-model="consultationForm.examen_laboratorio" rows="3" placeholder="Resultados de laboratorio"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Examen Complementario</label>
+                <textarea v-model="consultationForm.examen_complementario" rows="3" placeholder="Resultados de exámenes complementarios"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Diagnóstico y Tratamiento</h3>
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label>Diagnóstico</label>
+                <textarea v-model="consultationForm.diagnostico" rows="3" placeholder="Diagnóstico del paciente"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Plan de Tratamiento</label>
+                <textarea v-model="consultationForm.plan_tratamiento" rows="3" placeholder="Plan de tratamiento a seguir"></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Observaciones</label>
+                <textarea v-model="consultationForm.observacion" rows="3" placeholder="Observaciones adicionales"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="closeConsultationModal" class="cancel-btn">Cancelar</button>
+            <button type="submit" class="save-btn" :disabled="savingConsultation">
+              {{ savingConsultation ? 'Guardando...' : 'Guardar Consulta' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -265,8 +358,10 @@ export default {
       showCreateModal: false,
       showEditModal: false,
       showViewModal: false,
+      showConsultationModal: false,
       selectedPatient: null,
       saving: false,
+      savingConsultation: false,
       form: {
         nombres: '',
         apellidos: '',
@@ -284,6 +379,19 @@ export default {
         emergencia_parentesco: '',
         emergencia_telefono: '',
         emergencia_direccion: ''
+      },
+      consultationForm: {
+        patient_id: null,
+        motivo_consulta: '',
+        enfermedad_actual: '',
+        antecedentes_familiares: '',
+        antecedentes_personales: '',
+        examen_neurologico: '',
+        examen_laboratorio: '',
+        examen_complementario: '',
+        diagnostico: '',
+        plan_tratamiento: '',
+        observacion: ''
       }
     };
   },
@@ -357,8 +465,9 @@ export default {
         this.saving = false;
       }
     },
-    viewPatient(patient) {
+    async viewPatient(patient) {
       this.selectedPatient = patient;
+      await this.loadMedicalHistories(patient.id);
       this.showViewModal = true;
     },
     editPatient(patient) {
@@ -381,8 +490,80 @@ export default {
       if (!date) return 'N/A';
       return new Date(date).toLocaleDateString('es-ES');
     },
-    showMedicalHistory() {
-      alert('Funcionalidad de historial médico próximamente');
+    async loadMedicalHistories(patientId) {
+      try {
+        const response = await axios.get(`/api/patients/${patientId}/medical-histories`);
+        this.selectedPatient.medical_histories = response.data;
+      } catch (error) {
+        console.error('Error loading medical histories:', error);
+      }
+    },
+    openConsultationModal() {
+      this.consultationForm.patient_id = this.selectedPatient.id;
+      this.consultationForm = this.getConsultationFormWithPreviousData();
+      this.showConsultationModal = true;
+    },
+    openConsultationModalFromCard(patient) {
+      this.selectedPatient = patient;
+      this.consultationForm.patient_id = patient.id;
+      this.consultationForm = this.getConsultationFormWithPreviousData();
+      this.showConsultationModal = true;
+    },
+    getConsultationFormWithPreviousData() {
+      const baseForm = {
+        patient_id: this.selectedPatient.id,
+        motivo_consulta: '',
+        enfermedad_actual: '',
+        antecedentes_familiares: '',
+        antecedentes_personales: '',
+        examen_neurologico: '',
+        examen_laboratorio: '',
+        examen_complementario: '',
+        diagnostico: '',
+        plan_tratamiento: '',
+        observacion: ''
+      };
+
+      // Si hay consultas anteriores, copiar los antecedentes (datos que generalmente no cambian)
+      if (this.selectedPatient.medical_histories && this.selectedPatient.medical_histories.length > 0) {
+        const lastConsultation = this.selectedPatient.medical_histories[0];
+        baseForm.antecedentes_familiares = lastConsultation.antecedentes_familiares || '';
+        baseForm.antecedentes_personales = lastConsultation.antecedentes_personales || '';
+      }
+
+      return baseForm;
+    },
+    closeConsultationModal() {
+      this.showConsultationModal = false;
+      this.resetConsultationForm();
+    },
+    resetConsultationForm() {
+      this.consultationForm = {
+        patient_id: null,
+        motivo_consulta: '',
+        enfermedad_actual: '',
+        antecedentes_familiares: '',
+        antecedentes_personales: '',
+        examen_neurologico: '',
+        examen_laboratorio: '',
+        examen_complementario: '',
+        diagnostico: '',
+        plan_tratamiento: '',
+        observacion: ''
+      };
+    },
+    async saveConsultation() {
+      this.savingConsultation = true;
+      try {
+        await axios.post('/api/medical-histories', this.consultationForm);
+        this.closeConsultationModal();
+        await this.loadMedicalHistories(this.selectedPatient.id);
+      } catch (error) {
+        console.error('Error saving consultation:', error);
+        alert('Error al guardar la consulta');
+      } finally {
+        this.savingConsultation = false;
+      }
     }
   }
 };
@@ -562,6 +743,15 @@ export default {
 
 .edit-btn:hover {
   background: #ffe0b2;
+}
+
+.consult-btn {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.consult-btn:hover {
+  background: #c8e6c9;
 }
 
 .delete-btn {
