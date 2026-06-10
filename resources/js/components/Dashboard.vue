@@ -34,7 +34,8 @@
       </div>
 
       <main class="main-content">
-        <Patients v-if="currentView === 'patients'" />
+        <Patients v-if="currentView === 'patients'" @view-evolution="showEvolution" />
+        <Evolution v-if="currentView === 'evolution'" :patient-id="selectedPatientId" @back="currentView = 'patients'" />
       </main>
     </div>
   </div>
@@ -42,20 +43,27 @@
 
 <script>
 import Patients from './Patients.vue';
+import Evolution from './Evolution.vue';
 
 export default {
   name: 'Dashboard',
   components: {
-    Patients
+    Patients,
+    Evolution
   },
   data() {
     return {
-      currentView: 'patients'
+      currentView: 'patients',
+      selectedPatientId: null
     };
   },
   methods: {
     logout() {
       this.$emit('logout');
+    },
+    showEvolution(patientId) {
+      this.selectedPatientId = patientId;
+      this.currentView = 'evolution';
     }
   }
 };

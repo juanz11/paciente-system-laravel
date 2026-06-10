@@ -69,6 +69,13 @@
             </svg>
             Consulta
           </button>
+          <button @click="viewEvolution(patient)" class="action-btn evolution-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+              <polyline points="17 6 23 6 23 12"/>
+            </svg>
+            Evolución
+          </button>
           <button @click="deletePatient(patient.id)" class="action-btn delete-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -330,6 +337,10 @@
                 <label>Observaciones</label>
                 <textarea v-model="consultationForm.observacion" rows="3" placeholder="Observaciones adicionales"></textarea>
               </div>
+              <div class="form-group full-width">
+                <label>Evolución (Opcional)</label>
+                <textarea v-model="consultationForm.evolucion" rows="3" placeholder="Evolución del paciente entre consultas"></textarea>
+              </div>
             </div>
           </div>
 
@@ -391,7 +402,8 @@ export default {
         examen_complementario: '',
         diagnostico: '',
         plan_tratamiento: '',
-        observacion: ''
+        observacion: '',
+        evolucion: ''
       }
     };
   },
@@ -521,7 +533,8 @@ export default {
         examen_complementario: '',
         diagnostico: '',
         plan_tratamiento: '',
-        observacion: ''
+        observacion: '',
+        evolucion: ''
       };
 
       // Si hay consultas anteriores, copiar los antecedentes (datos que generalmente no cambian)
@@ -549,7 +562,8 @@ export default {
         examen_complementario: '',
         diagnostico: '',
         plan_tratamiento: '',
-        observacion: ''
+        observacion: '',
+        evolucion: ''
       };
     },
     async saveConsultation() {
@@ -564,6 +578,9 @@ export default {
       } finally {
         this.savingConsultation = false;
       }
+    },
+    viewEvolution(patient) {
+      this.$emit('view-evolution', patient.id);
     }
   }
 };
@@ -761,6 +778,15 @@ export default {
 
 .delete-btn:hover {
   background: #ffcdd2;
+}
+
+.evolution-btn {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.evolution-btn:hover {
+  background: #e1bee7;
 }
 
 .no-patients {

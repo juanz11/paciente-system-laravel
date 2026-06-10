@@ -19,6 +19,7 @@ class MedicalHistory extends Model
         'diagnostico',
         'plan_tratamiento',
         'observacion',
+        'evolucion',
     ];
 
     public function patient(): BelongsTo
