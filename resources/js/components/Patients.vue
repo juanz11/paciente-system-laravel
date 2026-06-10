@@ -1,0 +1,833 @@
+<template>
+  <div class="patients-container">
+    <div class="patients-header">
+      <h1 class="patients-title">Gestión de Pacientes</h1>
+      <button @click="showCreateModal = true" class="create-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nuevo Paciente
+      </button>
+    </div>
+
+    <div class="search-bar">
+      <input
+        type="text"
+        v-model="searchQuery"
+        @input="searchPatients"
+        placeholder="Buscar por nombre..."
+        class="search-input"
+      />
+    </div>
+
+    <div v-if="loading" class="loading">Cargando...</div>
+
+    <div v-else class="patients-grid">
+      <div v-for="patient in patients" :key="patient.id" class="patient-card">
+        <div class="patient-header">
+          <div class="patient-avatar">
+            {{ patient.nombres.charAt(0) }}{{ patient.apellidos.charAt(0) }}
+          </div>
+          <div class="patient-info">
+            <h3>{{ patient.nombres }} {{ patient.apellidos }}</h3>
+            <p>{{ patient.cedula_identidad || 'Sin cédula' }}</p>
+          </div>
+        </div>
+        <div class="patient-details">
+          <div class="detail-item">
+            <span class="detail-label">Edad:</span>
+            <span class="detail-value">{{ patient.edad || 'N/A' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Teléfono:</span>
+            <span class="detail-value">{{ patient.telefono || 'N/A' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Ciudad:</span>
+            <span class="detail-value">{{ patient.ciudad || 'N/A' }}</span>
+          </div>
+        </div>
+        <div class="patient-actions">
+          <button @click="viewPatient(patient)" class="action-btn view-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Ver
+          </button>
+          <button @click="editPatient(patient)" class="action-btn edit-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Editar
+          </button>
+          <button @click="deletePatient(patient.id)" class="action-btn delete-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            Eliminar
+          </button>
+        </div>
+      </div>
+
+      <div v-if="patients.length === 0" class="no-patients">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <p>No hay pacientes registrados</p>
+      </div>
+    </div>
+
+    <!-- Create/Edit Modal -->
+    <div v-if="showCreateModal || showEditModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>{{ showEditModal ? 'Editar Paciente' : 'Nuevo Paciente' }}</h2>
+          <button @click="closeModal" class="close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <form @submit.prevent="savePatient" class="modal-form">
+          <div class="form-section">
+            <h3>Datos Personales</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombres *</label>
+                <input type="text" v-model="form.nombres" required />
+              </div>
+              <div class="form-group">
+                <label>Apellidos *</label>
+                <input type="text" v-model="form.apellidos" required />
+              </div>
+              <div class="form-group">
+                <label>Fecha de Nacimiento *</label>
+                <input type="date" v-model="form.fecha_nacimiento" required />
+              </div>
+              <div class="form-group">
+                <label>Sexo *</label>
+                <select v-model="form.sexo" required>
+                  <option value="">Seleccionar</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Lugar de Nacimiento</label>
+                <input type="text" v-model="form.lugar_nacimiento" />
+              </div>
+              <div class="form-group">
+                <label>Nacionalidad</label>
+                <input type="text" v-model="form.nacionalidad" />
+              </div>
+              <div class="form-group">
+                <label>Cédula de Identidad</label>
+                <input type="text" v-model="form.cedula_identidad" />
+              </div>
+              <div class="form-group">
+                <label>Edad</label>
+                <input type="number" v-model="form.edad" />
+              </div>
+              <div class="form-group">
+                <label>Teléfono</label>
+                <input type="text" v-model="form.telefono" />
+              </div>
+              <div class="form-group">
+                <label>Ciudad</label>
+                <input type="text" v-model="form.ciudad" />
+              </div>
+              <div class="form-group">
+                <label>Estado</label>
+                <input type="text" v-model="form.estado" />
+              </div>
+              <div class="form-group full-width">
+                <label>Dirección</label>
+                <textarea v-model="form.direccion" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Datos de Emergencia</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombre del Contacto</label>
+                <input type="text" v-model="form.emergencia_nombre" />
+              </div>
+              <div class="form-group">
+                <label>Parentesco</label>
+                <input type="text" v-model="form.emergencia_parentesco" />
+              </div>
+              <div class="form-group">
+                <label>Teléfono de Emergencia</label>
+                <input type="text" v-model="form.emergencia_telefono" />
+              </div>
+              <div class="form-group full-width">
+                <label>Dirección de Emergencia</label>
+                <textarea v-model="form.emergencia_direccion" rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="closeModal" class="cancel-btn">Cancelar</button>
+            <button type="submit" class="save-btn" :disabled="saving">
+              {{ saving ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- View Modal -->
+    <div v-if="showViewModal" class="modal-overlay">
+      <div class="modal-content large-modal">
+        <div class="modal-header">
+          <h2>Detalle del Paciente</h2>
+          <button @click="showViewModal = false" class="close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="patient-detail">
+          <div class="detail-section">
+            <h3>Datos Personales</h3>
+            <div class="detail-grid">
+              <div class="detail-row"><span>Nombre:</span> <strong>{{ selectedPatient.nombres }} {{ selectedPatient.apellidos }}</strong></div>
+              <div class="detail-row"><span>Fecha de Nacimiento:</span> <strong>{{ formatDate(selectedPatient.fecha_nacimiento) }}</strong></div>
+              <div class="detail-row"><span>Sexo:</span> <strong>{{ selectedPatient.sexo }}</strong></div>
+              <div class="detail-row"><span>Cédula:</span> <strong>{{ selectedPatient.cedula_identidad || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Edad:</span> <strong>{{ selectedPatient.edad || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Teléfono:</span> <strong>{{ selectedPatient.telefono || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Ciudad:</span> <strong>{{ selectedPatient.ciudad || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Estado:</span> <strong>{{ selectedPatient.estado || 'N/A' }}</strong></div>
+              <div class="detail-row full-width"><span>Dirección:</span> <strong>{{ selectedPatient.direccion || 'N/A' }}</strong></div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Contacto de Emergencia</h3>
+            <div class="detail-grid">
+              <div class="detail-row"><span>Nombre:</span> <strong>{{ selectedPatient.emergencia_nombre || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Parentesco:</span> <strong>{{ selectedPatient.emergencia_parentesco || 'N/A' }}</strong></div>
+              <div class="detail-row"><span>Teléfono:</span> <strong>{{ selectedPatient.emergencia_telefono || 'N/A' }}</strong></div>
+              <div class="detail-row full-width"><span>Dirección:</span> <strong>{{ selectedPatient.emergencia_direccion || 'N/A' }}</strong></div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Historial Médico</h3>
+            <button @click="showMedicalHistory" class="add-history-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Agregar Consulta
+            </button>
+            <div v-if="selectedPatient.medical_histories && selectedPatient.medical_histories.length > 0" class="history-list">
+              <div v-for="history in selectedPatient.medical_histories" :key="history.id" class="history-item">
+                <div class="history-date">{{ formatDate(history.created_at) }}</div>
+                <div class="history-diagnosis">{{ history.diagnostico || 'Sin diagnóstico' }}</div>
+              </div>
+            </div>
+            <div v-else class="no-history">
+              No hay consultas registradas
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  name: 'Patients',
+  data() {
+    return {
+      patients: [],
+      loading: false,
+      searchQuery: '',
+      showCreateModal: false,
+      showEditModal: false,
+      showViewModal: false,
+      selectedPatient: null,
+      saving: false,
+      form: {
+        nombres: '',
+        apellidos: '',
+        fecha_nacimiento: '',
+        sexo: '',
+        lugar_nacimiento: '',
+        nacionalidad: '',
+        cedula_identidad: '',
+        edad: '',
+        telefono: '',
+        ciudad: '',
+        estado: '',
+        direccion: '',
+        emergencia_nombre: '',
+        emergencia_parentesco: '',
+        emergencia_telefono: '',
+        emergencia_direccion: ''
+      }
+    };
+  },
+  mounted() {
+    this.loadPatients();
+  },
+  methods: {
+    async loadPatients() {
+      this.loading = true;
+      try {
+        const response = await axios.get('/api/patients');
+        this.patients = response.data;
+      } catch (error) {
+        console.error('Error loading patients:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async searchPatients() {
+      if (this.searchQuery.trim()) {
+        try {
+          const response = await axios.get(`/api/patients?search=${this.searchQuery}`);
+          this.patients = response.data;
+        } catch (error) {
+          console.error('Error searching patients:', error);
+        }
+      } else {
+        this.loadPatients();
+      }
+    },
+    closeModal() {
+      this.showCreateModal = false;
+      this.showEditModal = false;
+      this.resetForm();
+    },
+    resetForm() {
+      this.form = {
+        nombres: '',
+        apellidos: '',
+        fecha_nacimiento: '',
+        sexo: '',
+        lugar_nacimiento: '',
+        nacionalidad: '',
+        cedula_identidad: '',
+        edad: '',
+        telefono: '',
+        ciudad: '',
+        estado: '',
+        direccion: '',
+        emergencia_nombre: '',
+        emergencia_parentesco: '',
+        emergencia_telefono: '',
+        emergencia_direccion: ''
+      };
+      this.selectedPatient = null;
+    },
+    async savePatient() {
+      this.saving = true;
+      try {
+        if (this.showEditModal && this.selectedPatient) {
+          await axios.put(`/api/patients/${this.selectedPatient.id}`, this.form);
+        } else {
+          await axios.post('/api/patients', this.form);
+        }
+        this.closeModal();
+        this.loadPatients();
+      } catch (error) {
+        console.error('Error saving patient:', error);
+        alert('Error al guardar el paciente');
+      } finally {
+        this.saving = false;
+      }
+    },
+    viewPatient(patient) {
+      this.selectedPatient = patient;
+      this.showViewModal = true;
+    },
+    editPatient(patient) {
+      this.selectedPatient = patient;
+      this.form = { ...patient };
+      this.showEditModal = true;
+    },
+    async deletePatient(id) {
+      if (confirm('¿Está seguro de eliminar este paciente?')) {
+        try {
+          await axios.delete(`/api/patients/${id}`);
+          this.loadPatients();
+        } catch (error) {
+          console.error('Error deleting patient:', error);
+          alert('Error al eliminar el paciente');
+        }
+      }
+    },
+    formatDate(date) {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleDateString('es-ES');
+    },
+    showMedicalHistory() {
+      alert('Funcionalidad de historial médico próximamente');
+    }
+  }
+};
+</script>
+
+<style scoped>
+.patients-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.patients-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.patients-title {
+  color: #1e3c72;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.create-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
+}
+
+.search-bar {
+  margin-bottom: 24px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #2a5298;
+  box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.patient-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+}
+
+.patient-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.patient-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.patient-avatar {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.patient-info h3 {
+  color: #1e3c72;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.patient-info p {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.patient-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.detail-label {
+  color: #6c757d;
+}
+
+.detail-value {
+  color: #1e3c72;
+  font-weight: 600;
+}
+
+.patient-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.view-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.view-btn:hover {
+  background: #bbdefb;
+}
+
+.edit-btn {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.edit-btn:hover {
+  background: #ffe0b2;
+}
+
+.delete-btn {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.delete-btn:hover {
+  background: #ffcdd2;
+}
+
+.no-patients {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px;
+  color: #ccc;
+}
+
+.no-patients p {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.large-modal {
+  max-width: 1000px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+  color: #1e3c72;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: #1e3c72;
+}
+
+.modal-form {
+  padding: 24px;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section h3 {
+  color: #1e3c72;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  color: #1e3c72;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #2a5298;
+  box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.cancel-btn {
+  padding: 12px 24px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-btn:hover {
+  background: #f5f7fa;
+}
+
+.save-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.save-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.patient-detail {
+  padding: 24px;
+}
+
+.detail-section {
+  margin-bottom: 32px;
+}
+
+.detail-section h3 {
+  color: #1e3c72;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.detail-row.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-row span {
+  color: #6c757d;
+}
+
+.detail-row strong {
+  color: #1e3c72;
+}
+
+.add-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: 16px;
+}
+
+.add-history-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(30, 60, 114, 0.3);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  background: #f5f7fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.history-date {
+  color: #6c757d;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.history-diagnosis {
+  color: #1e3c72;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.no-history {
+  color: #6c757d;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+</style>
