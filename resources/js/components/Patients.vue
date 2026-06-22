@@ -76,6 +76,13 @@
             </svg>
             Evolución
           </button>
+          <button @click="deletePatient(patient.id)" class="action-btn delete-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Eliminar
+          </button>
         </div>
       </div>
 
@@ -242,8 +249,16 @@
             </button>
             <div v-if="selectedPatient.medical_histories && selectedPatient.medical_histories.length > 0" class="history-list">
               <div v-for="history in selectedPatient.medical_histories" :key="history.id" class="history-item">
-                <div class="history-date">{{ formatDate(history.created_at) }}</div>
-                <div class="history-diagnosis">{{ history.diagnostico || 'Sin diagnóstico' }}</div>
+                <div class="history-content">
+                  <div class="history-date">{{ formatDate(history.created_at) }}</div>
+                  <div class="history-diagnosis">{{ history.diagnostico || 'Sin diagnóstico' }}</div>
+                </div>
+                <button @click="deleteMedicalHistory(history.id)" class="delete-history-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
               </div>
             </div>
             <div v-else class="no-history">
@@ -486,6 +501,17 @@ export default {
         } catch (error) {
           console.error('Error deleting patient:', error);
           alert('Error al eliminar el paciente');
+        }
+      }
+    },
+    async deleteMedicalHistory(historyId) {
+      if (confirm('¿Está seguro de eliminar esta consulta médica?')) {
+        try {
+          await axios.delete(`/api/medical-histories/${historyId}`);
+          await this.loadMedicalHistories(this.selectedPatient.id);
+        } catch (error) {
+          console.error('Error deleting medical history:', error);
+          alert('Error al eliminar la consulta médica');
         }
       }
     },
@@ -1024,6 +1050,14 @@ export default {
   background: #f5f7fa;
   padding: 16px;
   border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-content {
+  flex: 1;
 }
 
 .history-date {
@@ -1036,6 +1070,23 @@ export default {
   color: #1e3c72;
   font-weight: 600;
   font-size: 14px;
+}
+
+.delete-history-btn {
+  background: #ffebee;
+  color: #c62828;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-history-btn:hover {
+  background: #ffcdd2;
 }
 
 .no-history {
