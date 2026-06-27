@@ -19,9 +19,9 @@
 
     <div class="dashboard-content">
       <div class="sidebar">
-        <button 
-          @click="currentView = 'patients'" 
-          :class="['nav-item', { active: currentView === 'patients' }]"
+        <button
+          @click="currentView = 'patients'"
+          :class="['nav-item', { active: currentView === 'patients' || currentView === 'evolution' || currentView === 'recipe' }]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -31,11 +31,40 @@
           </svg>
           Pacientes
         </button>
+        <button
+          @click="currentView = 'recipe-format'"
+          :class="['nav-item', { active: currentView === 'recipe-format' }]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Formato de Recipe
+        </button>
       </div>
 
       <main class="main-content">
-        <Patients v-if="currentView === 'patients'" @view-evolution="showEvolution" />
-        <Evolution v-if="currentView === 'evolution'" :patient-id="selectedPatientId" @back="currentView = 'patients'" />
+        <Patients
+          v-if="currentView === 'patients'"
+          @view-evolution="showEvolution"
+          @view-recipe="showRecipe"
+        />
+        <Evolution
+          v-if="currentView === 'evolution'"
+          :patient-id="selectedPatientId"
+          @back="currentView = 'patients'"
+        />
+        <Recipe
+          v-if="currentView === 'recipe'"
+          :patient="selectedPatient"
+          @back="currentView = 'patients'"
+        />
+        <RecipeFormat
+          v-if="currentView === 'recipe-format'"
+        />
       </main>
     </div>
   </div>
@@ -44,17 +73,22 @@
 <script>
 import Patients from './Patients.vue';
 import Evolution from './Evolution.vue';
+import Recipe from './Recipe.vue';
+import RecipeFormat from './RecipeFormat.vue';
 
 export default {
   name: 'Dashboard',
   components: {
     Patients,
-    Evolution
+    Evolution,
+    Recipe,
+    RecipeFormat
   },
   data() {
     return {
       currentView: 'patients',
-      selectedPatientId: null
+      selectedPatientId: null,
+      selectedPatient: null
     };
   },
   methods: {
@@ -64,6 +98,10 @@ export default {
     showEvolution(patientId) {
       this.selectedPatientId = patientId;
       this.currentView = 'evolution';
+    },
+    showRecipe(patient) {
+      this.selectedPatient = patient;
+      this.currentView = 'recipe';
     }
   }
 };
