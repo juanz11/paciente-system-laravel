@@ -9,14 +9,28 @@
         Volver
       </button>
       <h2 class="recipe-toolbar-title">Recipe Médico — {{ patient ? patient.nombres + ' ' + patient.apellidos : '' }}</h2>
-      <button @click="downloadRecipe" class="recipe-download-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Descargar Recipe
-      </button>
+      <div class="recipe-toolbar-actions">
+        <select v-if="recipes.length > 0" v-model="selectedRecipeId" @change="loadSelectedRecipe" class="recipe-history-select">
+          <option value="">Cargar recipe anterior...</option>
+          <option v-for="r in recipes" :key="r.id" :value="r.id">{{ formatDate(r.fecha) }} — {{ r.indicaciones.substring(0, 30) }}...</option>
+        </select>
+        <button @click="saveRecipe" class="recipe-save-btn" :disabled="saving">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          {{ saving ? 'Guardando...' : 'Guardar Recipe' }}
+        </button>
+        <button @click="downloadRecipe" class="recipe-download-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Descargar Recipe
+        </button>
+      </div>
     </div>
 
     <div class="recipe-workspace">
@@ -160,6 +174,9 @@ export default {
         indicaciones: '',
       },
       successMsg: '',
+      recipes: [],
+      selectedRecipeId: '',
+      saving: false,
     };
   },
   computed: {
@@ -174,6 +191,7 @@ export default {
   },
   mounted() {
     this.loadFormat();
+    this.loadRecipes();
   },
   methods: {
     async loadFormat() {
@@ -191,6 +209,42 @@ export default {
         this.format.doctor_telefono = d.doctor_telefono || '';
       } catch (e) {
         console.error('Error loading format:', e);
+      }
+    },
+    async loadRecipes() {
+      if (!this.patient) return;
+      try {
+        const res = await axios.get(`/api/patients/${this.patient.id}/recipes`);
+        this.recipes = res.data;
+      } catch (e) {
+        console.error('Error loading recipes:', e);
+      }
+    },
+    async saveRecipe() {
+      if (!this.patient) return;
+      this.saving = true;
+      this.successMsg = '';
+      try {
+        await axios.post('/api/recipes', {
+          patient_id: this.patient.id,
+          fecha: this.recipeData.fecha,
+          indicaciones: this.recipeData.indicaciones,
+        });
+        this.successMsg = 'Recipe guardado correctamente';
+        await this.loadRecipes();
+      } catch (e) {
+        console.error('Error saving recipe:', e);
+        this.successMsg = 'Error al guardar el recipe';
+      } finally {
+        this.saving = false;
+      }
+    },
+    async loadSelectedRecipe() {
+      if (!this.selectedRecipeId) return;
+      const recipe = this.recipes.find(r => r.id === this.selectedRecipeId);
+      if (recipe) {
+        this.recipeData.fecha = recipe.fecha;
+        this.recipeData.indicaciones = recipe.indicaciones;
       }
     },
     formatDate(dateStr) {
@@ -344,6 +398,53 @@ export default {
   color: #1e3c72;
   font-size: 22px;
   font-weight: 700;
+}
+
+.recipe-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.recipe-history-select {
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #37474f;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.recipe-history-select:focus {
+  outline: none;
+  border-color: #2a5298;
+}
+
+.recipe-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00695c 0%, #00796b 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.recipe-save-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,105,92,0.3);
+}
+
+.recipe-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .recipe-back-btn {

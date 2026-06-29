@@ -275,6 +275,34 @@
               No hay consultas registradas
             </div>
           </div>
+
+          <div class="detail-section">
+            <h3>Historial de Recipes</h3>
+            <button @click="openRecipeFromView" class="add-history-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Crear Recipe
+            </button>
+            <div v-if="recipes.length > 0" class="history-list">
+              <div v-for="recipe in recipes" :key="recipe.id" class="history-item">
+                <div class="history-content">
+                  <div class="history-date">{{ formatDate(recipe.fecha) }}</div>
+                  <div class="history-diagnosis">{{ recipe.indicaciones.substring(0, 60) }}{{ recipe.indicaciones.length > 60 ? '...' : '' }}</div>
+                </div>
+                <button @click="deleteRecipe(recipe.id)" class="delete-history-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div v-else class="no-history">
+              No hay recipes registrados
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -389,6 +417,7 @@ export default {
       selectedPatient: null,
       saving: false,
       savingConsultation: false,
+      recipes: [],
       form: {
         nombres: '',
         apellidos: '',
@@ -496,6 +525,7 @@ export default {
     async viewPatient(patient) {
       this.selectedPatient = patient;
       await this.loadMedicalHistories(patient.id);
+      await this.loadRecipes(patient.id);
       this.showViewModal = true;
     },
     editPatient(patient) {
@@ -524,6 +554,28 @@ export default {
           alert('Error al eliminar la consulta médica');
         }
       }
+    },
+    async loadRecipes(patientId) {
+      try {
+        const response = await axios.get(`/api/patients/${patientId}/recipes`);
+        this.recipes = response.data;
+      } catch (error) {
+        console.error('Error loading recipes:', error);
+      }
+    },
+    async deleteRecipe(recipeId) {
+      if (confirm('¿Está seguro de eliminar este recipe?')) {
+        try {
+          await axios.delete(`/api/recipes/${recipeId}`);
+          await this.loadRecipes(this.selectedPatient.id);
+        } catch (error) {
+          console.error('Error deleting recipe:', error);
+          alert('Error al eliminar el recipe');
+        }
+      }
+    },
+    openRecipeFromView() {
+      this.$emit('view-recipe', this.selectedPatient);
     },
     formatDate(date) {
       if (!date) return 'N/A';

@@ -28,17 +28,44 @@ class RecipeFormatController extends Controller
     {
         $user = Auth::user();
 
-        $validated = $request->validate([
-            'doctor_nombre'       => 'nullable|string|max:255',
-            'doctor_especialidad' => 'nullable|string|max:255',
-            'doctor_codigo_mmps'  => 'nullable|string|max:100',
-            'doctor_codigo_cm'    => 'nullable|string|max:100',
-            'doctor_ci'           => 'nullable|string|max:100',
-            'doctor_logo'         => 'nullable|file|image|max:2048',
-            'doctor_fondo_agua'   => 'nullable|file|image|max:2048',
-            'doctor_direccion'    => 'nullable|string|max:500',
-            'doctor_telefono'     => 'nullable|string|max:100',
+        if (!$user) {
+            \Log::error('User not authenticated in RecipeFormat update');
+            return response()->json([
+                'message' => 'Usuario no autenticado. Por favor, inicia sesión nuevamente.'
+            ], 401);
+        }
+
+        \Log::info('RecipeFormat update request', [
+            'all' => $request->all(),
+            'has_logo' => $request->hasFile('doctor_logo'),
+            'has_fondo' => $request->hasFile('doctor_fondo_agua'),
+            'user_id' => $user->id,
         ]);
+
+        try {
+            $validated = $request->validate([
+                'doctor_nombre'       => 'nullable|string|max:255',
+                'doctor_especialidad' => 'nullable|string|max:255',
+                'doctor_codigo_mmps'  => 'nullable|string|max:100',
+                'doctor_codigo_cm'    => 'nullable|string|max:100',
+                'doctor_ci'           => 'nullable|string|max:100',
+                'doctor_logo'         => 'nullable|file|image|max:2048',
+                'doctor_fondo_agua'   => 'nullable|file|image|max:2048',
+                'doctor_direccion'    => 'nullable|string|max:500',
+                'doctor_telefono'     => 'nullable|string|max:100',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error', ['errors' => $e->errors()]);
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('General error', ['message' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
 
         if ($request->hasFile('doctor_logo')) {
             if ($user->doctor_logo) {

@@ -177,6 +177,7 @@ export default {
   },
   mounted() {
     this.loadFormat();
+    this.loadUser();
   },
   methods: {
     async loadFormat() {
@@ -194,6 +195,17 @@ export default {
         if (d.doctor_fondo_agua) this.fondoPreview = d.doctor_fondo_agua;
       } catch (e) {
         console.error('Error loading recipe format:', e);
+      }
+    },
+    async loadUser() {
+      try {
+        const res = await axios.get('/api/me');
+        const user = res.data.user;
+        if (!this.form.doctor_nombre && user.name) {
+          this.form.doctor_nombre = user.name;
+        }
+      } catch (e) {
+        console.error('Error loading user:', e);
       }
     },
     onLogoChange(e) {
@@ -247,7 +259,14 @@ export default {
         this.successMsg = 'Formato guardado correctamente';
       } catch (e) {
         console.error('Error saving format:', e);
-        this.errorMsg = 'Error al guardar el formato';
+        if (e.response && e.response.data && e.response.data.errors) {
+          const errors = e.response.data.errors;
+          this.errorMsg = Object.values(errors).flat().join(', ');
+        } else if (e.response && e.response.data && e.response.data.message) {
+          this.errorMsg = e.response.data.message;
+        } else {
+          this.errorMsg = 'Error al guardar el formato: ' + (e.message || 'Error desconocido');
+        }
       } finally {
         this.saving = false;
       }
