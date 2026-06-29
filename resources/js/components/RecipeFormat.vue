@@ -470,6 +470,49 @@ export default {
   cursor: not-allowed;
 }
 
+@media (max-width: 1100px) {
+  .rf-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-preview-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .rf-header {
+    text-align: center;
+  }
+
+  .rf-title {
+    font-size: 22px;
+  }
+
+  .rf-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rf-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rf-save-btn {
+    width: 100%;
+  }
+
+  .rf-upload-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .rf-upload-btn,
+  .rf-remove-btn {
+    width: 100%;
+  }
+}
+
 /* Preview Card */
 .rf-preview-card {
   background: white;

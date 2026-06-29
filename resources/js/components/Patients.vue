@@ -594,8 +594,9 @@ export default {
       this.consultationForm = this.getConsultationFormWithPreviousData();
       this.showConsultationModal = true;
     },
-    openConsultationModalFromCard(patient) {
+    async openConsultationModalFromCard(patient) {
       this.selectedPatient = patient;
+      await this.loadMedicalHistories(patient.id);
       this.consultationForm.patient_id = patient.id;
       this.consultationForm = this.getConsultationFormWithPreviousData();
       this.showConsultationModal = true;
@@ -817,22 +818,25 @@ export default {
 
 .patient-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .action-btn {
   flex: 1;
+  min-width: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px;
+  padding: 10px 8px;
   border: none;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  white-space: nowrap;
 }
 
 .view-btn {

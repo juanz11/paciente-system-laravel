@@ -398,12 +398,14 @@ export default {
   color: #1e3c72;
   font-size: 22px;
   font-weight: 700;
+  min-width: 0;
 }
 
 .recipe-toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .recipe-history-select {
@@ -415,6 +417,41 @@ export default {
   background: white;
   cursor: pointer;
   transition: all 0.3s;
+  max-width: 250px;
+}
+
+@media (max-width: 768px) {
+  .recipe-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .recipe-toolbar-title {
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .recipe-toolbar-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .recipe-history-select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .recipe-save-btn,
+  .recipe-download-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .recipe-back-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .recipe-history-select:focus {
