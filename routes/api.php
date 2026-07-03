@@ -17,7 +17,7 @@ Route::middleware('web')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('recipe-format', [RecipeFormatController::class, 'show']);
         Route::post('recipe-format', [RecipeFormatController::class, 'update']);
+        Route::get('patients/{patientId}/recipes', [RecipeController::class, 'index']);
+        Route::apiResource('recipes', RecipeController::class);
     });
-    Route::get('patients/{patientId}/recipes', [RecipeController::class, 'index']);
-    Route::apiResource('recipes', RecipeController::class);
 });

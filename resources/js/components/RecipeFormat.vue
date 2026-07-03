@@ -201,7 +201,7 @@ export default {
       try {
         const res = await axios.get('/api/me');
         const user = res.data.user;
-        if (!this.form.doctor_nombre && user.name) {
+        if (user && !this.form.doctor_nombre && user.name) {
           this.form.doctor_nombre = user.name;
         }
       } catch (e) {

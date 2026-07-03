@@ -66,12 +66,11 @@ export default {
       this.error = '';
       
       try {
-        const response = await axios.post('/api/login', {
+        await axios.post('/api/login', {
           username: this.username,
           password: this.password
         });
-        
-        localStorage.setItem('token', 'authenticated');
+
         this.$emit('login');
       } catch (err) {
         this.error = 'Credenciales incorrectas';

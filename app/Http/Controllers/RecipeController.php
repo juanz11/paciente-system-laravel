@@ -10,6 +10,7 @@ class RecipeController extends Controller
     public function index($patientId)
     {
         $recipes = Recipe::where('patient_id', $patientId)
+            ->where('user_id', auth()->id())
             ->orderBy('fecha', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -50,7 +51,7 @@ class RecipeController extends Controller
 
     public function destroy($id)
     {
-        $recipe = Recipe::findOrFail($id);
+        $recipe = Recipe::where('user_id', auth()->id())->findOrFail($id);
         $recipe->delete();
         return response()->json(['message' => 'Recipe deleted'], 200);
     }

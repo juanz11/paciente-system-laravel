@@ -14,6 +14,13 @@
           <option value="">Cargar recipe anterior...</option>
           <option v-for="r in recipes" :key="r.id" :value="r.id">{{ formatDate(r.fecha) }} — {{ r.indicaciones.substring(0, 30) }}...</option>
         </select>
+        <button v-if="selectedRecipeId" @click="deleteRecipe" class="recipe-delete-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          Eliminar Recipe
+        </button>
         <button @click="saveRecipe" class="recipe-save-btn" :disabled="saving">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -247,6 +254,22 @@ export default {
         this.recipeData.indicaciones = recipe.indicaciones;
       }
     },
+    async deleteRecipe() {
+      if (!this.selectedRecipeId) return;
+      if (confirm('¿Está seguro de eliminar este recipe?')) {
+        try {
+          await axios.delete(`/api/recipes/${this.selectedRecipeId}`);
+          this.successMsg = 'Recipe eliminado correctamente';
+          this.selectedRecipeId = '';
+          this.recipeData.fecha = new Date().toISOString().substring(0, 10);
+          this.recipeData.indicaciones = '';
+          await this.loadRecipes();
+        } catch (e) {
+          console.error('Error deleting recipe:', e);
+          this.successMsg = 'Error al eliminar el recipe';
+        }
+      }
+    },
     formatDate(dateStr) {
       if (!dateStr) return '';
       const d = new Date(dateStr + 'T00:00:00');
@@ -443,7 +466,8 @@ export default {
   }
 
   .recipe-save-btn,
-  .recipe-download-btn {
+  .recipe-download-btn,
+  .recipe-delete-btn {
     width: 100%;
     justify-content: center;
   }
@@ -521,6 +545,25 @@ export default {
 .recipe-download-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(30,60,114,0.3);
+}
+
+.recipe-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffebee;
+  color: #c62828;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.recipe-delete-btn:hover {
+  background: #ffcdd2;
 }
 
 .recipe-workspace {

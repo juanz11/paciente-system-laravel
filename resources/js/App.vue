@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import Login from './components/Login.vue';
 import Dashboard from './components/Dashboard.vue';
 
@@ -20,13 +21,20 @@ export default {
       isAuthenticated: false
     };
   },
-  mounted() {
-    const token = localStorage.getItem('token');
-    this.isAuthenticated = !!token;
+  async mounted() {
+    await this.checkAuth();
   },
   methods: {
+    async checkAuth() {
+      try {
+        const res = await axios.get('/api/me');
+        this.isAuthenticated = !!res.data.user;
+      } catch (e) {
+        this.isAuthenticated = false;
+      }
+    },
     handleLogin() {
-      this.isAuthenticated = true;
+      this.checkAuth();
     },
     handleLogout() {
       this.isAuthenticated = false;
