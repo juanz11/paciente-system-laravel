@@ -12,8 +12,11 @@ class PatientController extends Controller
         $search = request()->query('search');
         $patients = Patient::where('user_id', auth()->id())
             ->when($search, function ($query, $search) {
-                return $query->where('nombres', 'like', "%{$search}%")
-                            ->orWhere('apellidos', 'like', "%{$search}%");
+                return $query->where(function ($q) use ($search) {
+                    $q->where('nombres', 'like', "%{$search}%")
+                      ->orWhere('apellidos', 'like', "%{$search}%")
+                      ->orWhere('cedula_identidad', 'like', "%{$search}%");
+                });
             })->orderBy('created_at', 'desc')->get();
         return response()->json($patients, 200);
     }

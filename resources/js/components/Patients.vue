@@ -16,7 +16,7 @@
         type="text"
         v-model="searchQuery"
         @input="searchPatients"
-        placeholder="Buscar por nombre..."
+        placeholder="Buscar por nombre o cédula..."
         class="search-input"
       />
     </div>
