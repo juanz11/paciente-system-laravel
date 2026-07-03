@@ -46,27 +46,46 @@
         <div class="recipe-form-card">
           <h3>Datos del Recipe</h3>
           <div class="recipe-form-group">
-            <div class="recipe-label-row">
-              <label>Fecha</label>
-              <label class="recipe-check-label">
-                <input type="checkbox" v-model="recipeData.mostrarFecha" />
-                Mostrar fecha
-              </label>
-            </div>
-            <input v-if="recipeData.mostrarFecha" type="date" v-model="recipeData.fecha" />
-            <div v-else class="recipe-no-fecha">Sin fecha (no aparecerá en el recipe)</div>
-          </div>
-          <div class="recipe-form-group">
             <label>Paciente</label>
             <input type="text" :value="patientFullName" readonly class="readonly-input" />
           </div>
-          <div class="recipe-form-group">
-            <label>Recipe 1 / Indicaciones</label>
-            <textarea v-model="recipeData.indicaciones" rows="8" placeholder="Escriba las indicaciones del recipe aquí..."></textarea>
-          </div>
-          <div class="recipe-form-group">
-            <label>Recipe 2 / Indicaciones (opcional — segunda columna)</label>
-            <textarea v-model="recipeData.indicaciones2" rows="8" placeholder="Indicaciones para la segunda copia del recipe..."></textarea>
+          <div class="recipe-two-cols-form">
+            <!-- Columna 1 -->
+            <div class="recipe-col-form">
+              <div class="recipe-form-group">
+                <div class="recipe-label-row">
+                  <label>Recipe 1 — Fecha</label>
+                  <label class="recipe-check-label">
+                    <input type="checkbox" v-model="recipeData.mostrarFecha1" />
+                    Mostrar fecha
+                  </label>
+                </div>
+                <input v-if="recipeData.mostrarFecha1" type="date" v-model="recipeData.fecha" />
+                <div v-else class="recipe-no-fecha">Sin fecha</div>
+              </div>
+              <div class="recipe-form-group">
+                <label>Recipe 1 / Indicaciones</label>
+                <textarea v-model="recipeData.indicaciones" rows="8" placeholder="Indicaciones del recipe 1..."></textarea>
+              </div>
+            </div>
+            <!-- Columna 2 -->
+            <div class="recipe-col-form">
+              <div class="recipe-form-group">
+                <div class="recipe-label-row">
+                  <label>Recipe 2 — Fecha</label>
+                  <label class="recipe-check-label">
+                    <input type="checkbox" v-model="recipeData.mostrarFecha2" />
+                    Mostrar fecha
+                  </label>
+                </div>
+                <input v-if="recipeData.mostrarFecha2" type="date" v-model="recipeData.fecha2" />
+                <div v-else class="recipe-no-fecha">Sin fecha</div>
+              </div>
+              <div class="recipe-form-group">
+                <label>Recipe 2 / Indicaciones <span class="recipe-opcional">(opcional)</span></label>
+                <textarea v-model="recipeData.indicaciones2" rows="8" placeholder="Indicaciones del recipe 2..."></textarea>
+              </div>
+            </div>
           </div>
           <div v-if="successMsg" class="recipe-success">{{ successMsg }}</div>
         </div>
@@ -99,7 +118,7 @@
             </div>
             <div class="rp-divider"></div>
             <div class="rp-meta">
-              <div v-if="recipeData.mostrarFecha" class="rp-meta-row"><span class="rp-meta-label">Fecha:</span><span class="rp-meta-value">{{ recipeData.fecha ? formatDate(recipeData.fecha) : '___/___/______' }}</span></div>
+              <div v-if="recipeData.mostrarFecha1" class="rp-meta-row"><span class="rp-meta-label">Fecha:</span><span class="rp-meta-value">{{ recipeData.fecha ? formatDate(recipeData.fecha) : '___/___/______' }}</span></div>
               <div class="rp-meta-row"><span class="rp-meta-label">Paciente:</span><span class="rp-meta-value">{{ patientFullName }}</span></div>
               <div v-if="patient && patient.cedula_identidad" class="rp-meta-row"><span class="rp-meta-label">C.I.:</span><span class="rp-meta-value">{{ patient.cedula_identidad }}</span></div>
             </div>
@@ -152,7 +171,7 @@
             </div>
             <div class="rp-divider"></div>
             <div class="rp-meta">
-              <div v-if="recipeData.mostrarFecha" class="rp-meta-row"><span class="rp-meta-label">Fecha:</span><span class="rp-meta-value">{{ recipeData.fecha ? formatDate(recipeData.fecha) : '___/___/______' }}</span></div>
+              <div v-if="recipeData.mostrarFecha2" class="rp-meta-row"><span class="rp-meta-label">Fecha:</span><span class="rp-meta-value">{{ recipeData.fecha2 ? formatDate(recipeData.fecha2) : '___/___/______' }}</span></div>
               <div class="rp-meta-row"><span class="rp-meta-label">Paciente:</span><span class="rp-meta-value">{{ patientFullName }}</span></div>
               <div v-if="patient && patient.cedula_identidad" class="rp-meta-row"><span class="rp-meta-label">C.I.:</span><span class="rp-meta-value">{{ patient.cedula_identidad }}</span></div>
             </div>
@@ -213,9 +232,11 @@ export default {
       },
       recipeData: {
         fecha: new Date().toISOString().substring(0, 10),
+        fecha2: new Date().toISOString().substring(0, 10),
         indicaciones: '',
         indicaciones2: '',
-        mostrarFecha: true,
+        mostrarFecha1: true,
+        mostrarFecha2: true,
       },
       successMsg: '',
       recipes: [],
@@ -273,13 +294,18 @@ export default {
       this.saving = true;
       this.successMsg = '';
       try {
+        const meta = JSON.stringify({
+          fecha2: this.recipeData.fecha2,
+          mf1: this.recipeData.mostrarFecha1,
+          mf2: this.recipeData.mostrarFecha2,
+        });
         const indicacionesCompletas = this.recipeData.indicaciones2
           ? this.recipeData.indicaciones + '\n---RECIPE2---\n' + this.recipeData.indicaciones2
           : this.recipeData.indicaciones;
         await axios.post('/api/recipes', {
           patient_id: this.patient.id,
           fecha: this.recipeData.fecha,
-          indicaciones: indicacionesCompletas,
+          indicaciones: indicacionesCompletas + '\n---META---\n' + meta,
         });
         this.successMsg = 'Recipe guardado correctamente';
         await this.loadRecipes();
@@ -295,9 +321,18 @@ export default {
       const recipe = this.recipes.find(r => r.id === this.selectedRecipeId);
       if (recipe) {
         this.recipeData.fecha = recipe.fecha;
-        const parts = recipe.indicaciones.split('\n---RECIPE2---\n');
+        const [bodyPart, metaPart] = recipe.indicaciones.split('\n---META---\n');
+        const parts = (bodyPart || '').split('\n---RECIPE2---\n');
         this.recipeData.indicaciones = parts[0] || '';
         this.recipeData.indicaciones2 = parts[1] || '';
+        if (metaPart) {
+          try {
+            const m = JSON.parse(metaPart);
+            this.recipeData.fecha2 = m.fecha2 || new Date().toISOString().substring(0, 10);
+            this.recipeData.mostrarFecha1 = m.mf1 !== undefined ? m.mf1 : true;
+            this.recipeData.mostrarFecha2 = m.mf2 !== undefined ? m.mf2 : true;
+          } catch (e) { /* ignorar */ }
+        }
       }
     },
     async deleteRecipe() {
@@ -308,8 +343,11 @@ export default {
           this.successMsg = 'Recipe eliminado correctamente';
           this.selectedRecipeId = '';
           this.recipeData.fecha = new Date().toISOString().substring(0, 10);
+          this.recipeData.fecha2 = new Date().toISOString().substring(0, 10);
           this.recipeData.indicaciones = '';
           this.recipeData.indicaciones2 = '';
+          this.recipeData.mostrarFecha1 = true;
+          this.recipeData.mostrarFecha2 = true;
           await this.loadRecipes();
         } catch (e) {
           console.error('Error deleting recipe:', e);
@@ -403,14 +441,22 @@ export default {
       if (this.format.doctor_ci) codeParts.push(`CI: ${this.format.doctor_ci}`);
       const codesHtml = codeParts.length ? `<div class="rp-doctor-codes">${codeParts.join('&nbsp;&nbsp;')}</div>` : '';
 
-      let metaHtml = '';
-      if (this.recipeData.mostrarFecha) {
-        metaHtml += `<div class="rp-meta-row"><span class="rp-meta-label">Fecha:</span> <span class="rp-meta-value">${this.recipeData.fecha ? this.formatDate(this.recipeData.fecha) : '___/___/______'}</span></div>`;
+      const ciHtml = (this.patient && this.patient.cedula_identidad)
+        ? `<div class="rp-meta-row"><span class="rp-meta-label">C.I.:</span> <span class="rp-meta-value">${this.patient.cedula_identidad}</span></div>`
+        : '';
+      const pacienteRow = `<div class="rp-meta-row"><span class="rp-meta-label">Paciente:</span> <span class="rp-meta-value">${this.patientFullName}</span></div>`;
+
+      let metaHtml1 = '';
+      if (this.recipeData.mostrarFecha1) {
+        metaHtml1 += `<div class="rp-meta-row"><span class="rp-meta-label">Fecha:</span> <span class="rp-meta-value">${this.recipeData.fecha ? this.formatDate(this.recipeData.fecha) : '___/___/______'}</span></div>`;
       }
-      metaHtml += `<div class="rp-meta-row"><span class="rp-meta-label">Paciente:</span> <span class="rp-meta-value">${this.patientFullName}</span></div>`;
-      if (this.patient && this.patient.cedula_identidad) {
-        metaHtml += `<div class="rp-meta-row"><span class="rp-meta-label">C.I.:</span> <span class="rp-meta-value">${this.patient.cedula_identidad}</span></div>`;
+      metaHtml1 += pacienteRow + ciHtml;
+
+      let metaHtml2 = '';
+      if (this.recipeData.mostrarFecha2) {
+        metaHtml2 += `<div class="rp-meta-row"><span class="rp-meta-label">Fecha:</span> <span class="rp-meta-value">${this.recipeData.fecha2 ? this.formatDate(this.recipeData.fecha2) : '___/___/______'}</span></div>`;
       }
+      metaHtml2 += pacienteRow + ciHtml;
 
       const rxBody1 = this.recipeData.indicaciones
         ? this.indicacionesLines.map(l => `<p class="rp-rx-line-text">${l || '&nbsp;'}</p>`).join('')
@@ -424,8 +470,8 @@ export default {
       if (this.format.doctor_direccion) footerHtml += `<div>${this.format.doctor_direccion}</div>`;
       if (this.format.doctor_telefono) footerHtml += `<div>${this.format.doctor_telefono}</div>`;
 
-      const col1 = this.buildRecipeColHtml(logoHtml, watermarkHtml, codesHtml, metaHtml, rxBody1, footerHtml);
-      const col2 = this.buildRecipeColHtml(logoHtml, watermarkHtml, codesHtml, metaHtml, rxBody2, footerHtml);
+      const col1 = this.buildRecipeColHtml(logoHtml, watermarkHtml, codesHtml, metaHtml1, rxBody1, footerHtml);
+      const col2 = this.buildRecipeColHtml(logoHtml, watermarkHtml, codesHtml, metaHtml2, rxBody2, footerHtml);
 
       const html = `<!DOCTYPE html>
 <html lang="es">
@@ -524,14 +570,18 @@ export default {
 
   .recipe-save-btn,
   .recipe-download-btn,
-  .recipe-delete-btn {
+  .recipe-delete-btn,
+  .recipe-back-btn {
     width: 100%;
     justify-content: center;
   }
 
-  .recipe-back-btn {
-    width: 100%;
-    justify-content: center;
+  .recipe-form-card {
+    padding: 16px;
+  }
+
+  .recipe-paper-dual {
+    padding: 12px 8px;
   }
 }
 
@@ -625,14 +675,22 @@ export default {
 
 .recipe-workspace {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: minmax(320px, 420px) 1fr;
   gap: 28px;
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .recipe-workspace {
     grid-template-columns: 1fr;
+  }
+
+  .recipe-paper-dual {
+    overflow-x: auto;
+  }
+
+  .recipe-col {
+    min-width: 260px;
   }
 }
 
@@ -691,6 +749,30 @@ export default {
   font-size: 13px;
   font-weight: 600;
   margin-top: 8px;
+}
+
+.recipe-two-cols-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .recipe-two-cols-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recipe-col-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.recipe-opcional {
+  font-weight: 400;
+  color: #90a4ae;
+  font-size: 12px;
 }
 
 .recipe-label-row {
