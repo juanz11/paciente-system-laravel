@@ -8,8 +8,9 @@
       </div>
       <h1 class="login-title">Sistema Médico</h1>
       <p class="login-subtitle">Gestión de Pacientes</p>
-      
-      <form @submit.prevent="login" class="login-form">
+
+      <!-- Formulario de Login -->
+      <form v-if="!registerMode" @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">Usuario</label>
           <input
@@ -39,9 +40,76 @@
         
         <p v-if="error" class="error-message">{{ error }}</p>
       </form>
-      
+
+      <!-- Formulario de Registro -->
+      <form v-else @submit.prevent="register" class="login-form">
+        <div class="form-group">
+          <label for="reg-name">Nombre completo</label>
+          <input
+            type="text"
+            id="reg-name"
+            v-model="regData.name"
+            required
+            placeholder="Ej: Dr. Juan Pérez"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="reg-username">Usuario</label>
+          <input
+            type="text"
+            id="reg-username"
+            v-model="regData.username"
+            required
+            placeholder="Nombre de usuario para iniciar sesión"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Correo electrónico</label>
+          <input
+            type="email"
+            id="reg-email"
+            v-model="regData.email"
+            required
+            placeholder="correo@ejemplo.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <input
+            type="password"
+            id="reg-password"
+            v-model="regData.password"
+            required
+            placeholder="Mínimo 4 caracteres"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password2">Confirmar contraseña</label>
+          <input
+            type="password"
+            id="reg-password2"
+            v-model="regData.password_confirmation"
+            required
+            placeholder="Repita la contraseña"
+          />
+        </div>
+
+        <button type="submit" class="login-btn" :disabled="loading">
+          <span v-if="loading">Creando cuenta...</span>
+          <span v-else>Crear Cuenta</span>
+        </button>
+
+        <p v-if="error" class="error-message">{{ error }}</p>
+      </form>
+
       <div class="login-footer">
-        <p>Usuario: admin | Contraseña: admin</p>
+        <button type="button" class="toggle-mode-btn" @click="toggleMode">
+          {{ registerMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate' }}
+        </button>
       </div>
     </div>
   </div>
@@ -57,7 +125,15 @@ export default {
       username: '',
       password: '',
       loading: false,
-      error: ''
+      error: '',
+      registerMode: false,
+      regData: {
+        name: '',
+        username: '',
+        email: '',
+        password: '',
+        password_confirmation: ''
+      }
     };
   },
   methods: {
@@ -77,6 +153,34 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    async register() {
+      this.loading = true;
+      this.error = '';
+
+      if (this.regData.password !== this.regData.password_confirmation) {
+        this.error = 'Las contraseñas no coinciden';
+        this.loading = false;
+        return;
+      }
+
+      try {
+        await axios.post('/api/register', this.regData);
+        this.$emit('login');
+      } catch (err) {
+        if (err.response && err.response.status === 422 && err.response.data.errors) {
+          const errors = err.response.data.errors;
+          this.error = Object.values(errors)[0][0];
+        } else {
+          this.error = 'Error al crear la cuenta';
+        }
+      } finally {
+        this.loading = false;
+      }
+    },
+    toggleMode() {
+      this.registerMode = !this.registerMode;
+      this.error = '';
     }
   }
 };
@@ -191,5 +295,20 @@ export default {
   font-size: 12px;
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
+}
+
+.toggle-mode-btn {
+  background: none;
+  border: none;
+  color: #2a5298;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.toggle-mode-btn:hover {
+  color: #1e3c72;
+  text-decoration: underline;
 }
 </style>

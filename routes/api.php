@@ -9,6 +9,7 @@ use App\Http\Controllers\RecipeController;
 
 Route::middleware('web')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::apiResource('patients', PatientController::class);

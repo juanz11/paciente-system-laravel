@@ -23,6 +23,23 @@ class AuthController extends Controller
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:4|confirmed',
+        ]);
+
+        $user = User::create($validated);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return response()->json(['user' => $user], 201);
+    }
+
     public function logout(Request $request)
     {
         Auth::logout();
