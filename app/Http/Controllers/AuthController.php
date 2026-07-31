@@ -30,6 +30,16 @@ class AuthController extends Controller
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:4|confirmed',
+        ], [
+            'username.unique' => 'El nombre de usuario ya existe. Elija otro.',
+            'email.unique' => 'El correo electrónico ya está registrado. Use uno diferente.',
+            'name.required' => 'El nombre es obligatorio.',
+            'username.required' => 'El nombre de usuario es obligatorio.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico no es válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.min' => 'La contraseña debe tener al menos 4 caracteres.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
 
         $user = User::create($validated);

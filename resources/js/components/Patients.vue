@@ -1,7 +1,7 @@
 <template>
   <div class="patients-container">
     <div class="patients-header">
-      <h1 class="patients-title">Gestión de Pacientes</h1>
+      <h1 class="patients-title">{{ title }}</h1>
       <button @click="showCreateModal = true" class="create-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"/>
@@ -85,6 +85,12 @@
               <polyline points="10 9 9 9 8 9"/>
             </svg>
             Recipe
+          </button>
+          <button @click="openPhysicalExam(patient)" class="action-btn exam-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Examen
           </button>
           <button @click="deletePatient(patient.id)" class="action-btn delete-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -303,6 +309,34 @@
               No hay recipes registrados
             </div>
           </div>
+
+          <div class="detail-section">
+            <h3>Historial de Exámenes Físicos</h3>
+            <button @click="openPhysicalExamFromView" class="add-history-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Crear Examen
+            </button>
+            <div v-if="physicalExams.length > 0" class="history-list">
+              <div v-for="exam in physicalExams" :key="exam.id" class="history-item">
+                <div class="history-content">
+                  <div class="history-date">{{ formatDate(exam.fecha) }}</div>
+                  <div class="history-diagnosis">{{ exam.diagnostico_global ? exam.diagnostico_global.substring(0, 60) + (exam.diagnostico_global.length > 60 ? '...' : '') : 'Sin diagnóstico global' }}</div>
+                </div>
+                <button @click="deletePhysicalExam(exam.id)" class="delete-history-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div v-else class="no-history">
+              No hay exámenes físicos registrados
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -405,6 +439,12 @@ import axios from 'axios';
 
 export default {
   name: 'Patients',
+  props: {
+    title: {
+      type: String,
+      default: 'Gestión de Pacientes'
+    }
+  },
   data() {
     return {
       patients: [],
@@ -418,6 +458,7 @@ export default {
       saving: false,
       savingConsultation: false,
       recipes: [],
+      physicalExams: [],
       form: {
         nombres: '',
         apellidos: '',
@@ -526,6 +567,7 @@ export default {
       this.selectedPatient = patient;
       await this.loadMedicalHistories(patient.id);
       await this.loadRecipes(patient.id);
+      await this.loadPhysicalExams(patient.id);
       this.showViewModal = true;
     },
     editPatient(patient) {
@@ -575,7 +617,34 @@ export default {
       }
     },
     openRecipeFromView() {
+      this.showViewModal = false;
       this.$emit('view-recipe', this.selectedPatient);
+    },
+    openPhysicalExam(patient) {
+      this.$emit('view-physical-exam', patient);
+    },
+    openPhysicalExamFromView() {
+      this.showViewModal = false;
+      this.$emit('view-physical-exam', this.selectedPatient);
+    },
+    async loadPhysicalExams(patientId) {
+      try {
+        const response = await axios.get(`/api/patients/${patientId}/physical-exams`);
+        this.physicalExams = response.data;
+      } catch (error) {
+        console.error('Error loading physical exams:', error);
+      }
+    },
+    async deletePhysicalExam(examId) {
+      if (confirm('¿Está seguro de eliminar este examen físico?')) {
+        try {
+          await axios.delete(`/api/physical-exams/${examId}`);
+          await this.loadPhysicalExams(this.selectedPatient.id);
+        } catch (error) {
+          console.error('Error deleting physical exam:', error);
+          alert('Error al eliminar el examen físico');
+        }
+      }
     },
     formatDate(date) {
       if (!date) return 'N/A';
@@ -891,6 +960,15 @@ export default {
 
 .recipe-btn:hover {
   background: #b2ebf2;
+}
+
+.exam-btn {
+  background: #e8eaf6;
+  color: #283593;
+}
+
+.exam-btn:hover {
+  background: #c5cae9;
 }
 
 .no-patients {

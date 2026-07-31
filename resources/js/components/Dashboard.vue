@@ -44,6 +44,15 @@
           </svg>
           Formato de Recipe
         </button>
+        <button
+          @click="currentView = 'physical-exam-patients'"
+          :class="['nav-item', { active: currentView === 'physical-exam-patients' || currentView === 'physical-exam' }]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          Examen Físico
+        </button>
       </div>
 
       <main class="main-content">
@@ -51,6 +60,14 @@
           v-if="currentView === 'patients'"
           @view-evolution="showEvolution"
           @view-recipe="showRecipe"
+          @view-physical-exam="showPhysicalExam"
+        />
+        <Patients
+          v-if="currentView === 'physical-exam-patients'"
+          title="Examen Físico - Seleccione un Paciente"
+          @view-evolution="showEvolution"
+          @view-recipe="showRecipe"
+          @view-physical-exam="showPhysicalExam"
         />
         <Evolution
           v-if="currentView === 'evolution'"
@@ -65,6 +82,11 @@
         <RecipeFormat
           v-if="currentView === 'recipe-format'"
         />
+        <PhysicalExam
+          v-if="currentView === 'physical-exam'"
+          :patient="selectedPatient"
+          @back="currentView = 'physical-exam-patients'"
+        />
       </main>
     </div>
   </div>
@@ -75,6 +97,7 @@ import Patients from './Patients.vue';
 import Evolution from './Evolution.vue';
 import Recipe from './Recipe.vue';
 import RecipeFormat from './RecipeFormat.vue';
+import PhysicalExam from './PhysicalExam.vue';
 
 export default {
   name: 'Dashboard',
@@ -82,7 +105,8 @@ export default {
     Patients,
     Evolution,
     Recipe,
-    RecipeFormat
+    RecipeFormat,
+    PhysicalExam
   },
   data() {
     return {
@@ -102,6 +126,10 @@ export default {
     showRecipe(patient) {
       this.selectedPatient = patient;
       this.currentView = 'recipe';
+    },
+    showPhysicalExam(patient) {
+      this.selectedPatient = patient;
+      this.currentView = 'physical-exam';
     }
   }
 };

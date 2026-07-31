@@ -170,9 +170,12 @@ export default {
       } catch (err) {
         if (err.response && err.response.status === 422 && err.response.data.errors) {
           const errors = err.response.data.errors;
-          this.error = Object.values(errors)[0][0];
+          const allErrors = Object.values(errors).flat();
+          this.error = allErrors.join('. ');
+        } else if (err.response && err.response.data && err.response.data.message) {
+          this.error = err.response.data.message;
         } else {
-          this.error = 'Error al crear la cuenta';
+          this.error = 'Error al crear la cuenta. Intente nuevamente.';
         }
       } finally {
         this.loading = false;
