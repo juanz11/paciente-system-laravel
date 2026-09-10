@@ -166,7 +166,18 @@ export default {
     return {
       patient: null,
       loading: false,
-      expandedIds: []
+      expandedIds: [],
+      format: {
+        doctor_nombre: '',
+        doctor_especialidad: '',
+        doctor_codigo_mmps: '',
+        doctor_codigo_cm: '',
+        doctor_ci: '',
+        doctor_logo: null,
+        doctor_fondo_agua: null,
+        doctor_direccion: '',
+        doctor_telefono: '',
+      },
     };
   },
   computed: {
@@ -178,11 +189,29 @@ export default {
     }
   },
   mounted() {
+    this.loadFormat();
     if (this.patientId) {
       this.loadPatientEvolution();
     }
   },
   methods: {
+    async loadFormat() {
+      try {
+        const res = await axios.get('/api/recipe-format');
+        const d = res.data;
+        this.format.doctor_nombre = d.doctor_nombre || '';
+        this.format.doctor_especialidad = d.doctor_especialidad || '';
+        this.format.doctor_codigo_mmps = d.doctor_codigo_mmps || '';
+        this.format.doctor_codigo_cm = d.doctor_codigo_cm || '';
+        this.format.doctor_ci = d.doctor_ci || '';
+        this.format.doctor_logo = d.doctor_logo || null;
+        this.format.doctor_fondo_agua = d.doctor_fondo_agua || null;
+        this.format.doctor_direccion = d.doctor_direccion || '';
+        this.format.doctor_telefono = d.doctor_telefono || '';
+      } catch (e) {
+        console.error('Error loading format:', e);
+      }
+    },
     async loadPatientEvolution() {
       this.loading = true;
       try {
@@ -211,6 +240,24 @@ export default {
     downloadEvolution() {
       const p = this.patient;
       const histories = this.sortedHistories;
+
+      const logoHtml = this.format.doctor_logo
+        ? `<img src="${this.format.doctor_logo}" class="rp-logo" alt="logo" crossorigin="anonymous" />`
+        : `<div class="rp-logo-empty"></div>`;
+
+      const watermarkHtml = this.format.doctor_fondo_agua
+        ? `<div class="recipe-watermark"><img src="${this.format.doctor_fondo_agua}" alt="fondo" crossorigin="anonymous" /></div>`
+        : '';
+
+      const codeParts = [];
+      if (this.format.doctor_codigo_mmps) codeParts.push(`MMPS: ${this.format.doctor_codigo_mmps}`);
+      if (this.format.doctor_codigo_cm) codeParts.push(`CM: ${this.format.doctor_codigo_cm}`);
+      if (this.format.doctor_ci) codeParts.push(`CI: ${this.format.doctor_ci}`);
+      const codesHtml = codeParts.length ? `<div class="rp-doctor-codes">${codeParts.join('&nbsp;&nbsp;')}</div>` : '';
+
+      let footerHtml = '';
+      if (this.format.doctor_direccion) footerHtml += `<div>${this.format.doctor_direccion}</div>`;
+      if (this.format.doctor_telefono) footerHtml += `<div>${this.format.doctor_telefono}</div>`;
 
       const fields = [
         { key: 'motivo_consulta',        label: 'Motivo de Consulta' },
@@ -254,13 +301,24 @@ export default {
   <style>
     @page { size: A4; margin: 18mm 20mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #212121; }
-    .doc-header { border-bottom: 3px solid #1e3c72; padding-bottom: 14px; margin-bottom: 20px; }
-    .doc-title { font-size: 22px; font-weight: bold; color: #1e3c72; margin-bottom: 6px; }
-    .patient-row { display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; color: #444; }
+    body { margin:0; padding:0; font-family: 'Times New Roman', Times, serif; color: #212121; }
+    .doc-page { padding: 10px 14px; position: relative; }
+    .recipe-watermark { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:55%; z-index:0; pointer-events:none; }
+    .recipe-watermark img { width:100%; opacity:0.1; object-fit:contain; }
+    .rp-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; position:relative; z-index:1; }
+    .rp-logo { width:64px; height:64px; object-fit:contain; }
+    .rp-logo-empty { width:64px; height:64px; }
+    .rp-doctor-col { flex:1; }
+    .rp-doctor-name { font-size:16px; font-weight:bold; color:#1a3a6e; margin-bottom:2px; }
+    .rp-doctor-specialty { font-size:12px; color:#3949ab; font-style:italic; margin-bottom:4px; }
+    .rp-doctor-codes { font-size:11px; color:#546e7a; }
+    .rp-divider { height:2px; background:linear-gradient(90deg,#1e3c72,#2a5298); margin:8px 0; border-radius:1px; position:relative; z-index:1; }
+    .doc-header { position:relative; z-index:1; margin-bottom: 18px; }
+    .doc-title { font-size: 18px; font-weight: bold; color: #1e3c72; margin-bottom: 6px; }
+    .patient-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #444; margin-bottom: 6px; }
     .patient-row span { margin-right: 6px; }
     .patient-row strong { color: #1e3c72; }
-    .consulta { margin-bottom: 24px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; }
+    .consulta { margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; position:relative; z-index:1; }
     .consulta-header { background: #1e3c72; color: white; display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; }
     .consulta-num { font-weight: bold; font-size: 14px; }
     .consulta-date { font-size: 12px; opacity: 0.85; }
@@ -271,19 +329,34 @@ export default {
     .evo-section { border-left-color: #7b1fa2; background: #faf5ff; padding: 8px 10px; border-radius: 4px; }
     .evo-section .section-label { color: #7b1fa2; }
     .evo-section .section-value { color: #4a148c; }
+    .rp-footer { text-align:center; font-size:10px; color:#546e7a; line-height:1.8; margin-top:20px; position:relative; z-index:1; }
   </style>
 </head>
 <body>
-  <div class="doc-header">
-    <div class="doc-title">Evolución de Paciente</div>
-    <div class="patient-row">
-      <span><strong>Paciente:</strong> ${p.nombres} ${p.apellidos}</span>
-      <span><strong>Cédula:</strong> ${p.cedula_identidad || 'N/A'}</span>
-      <span><strong>Edad:</strong> ${p.edad || 'N/A'}</span>
-      <span><strong>Total consultas:</strong> ${histories.length}</span>
+  <div class="doc-page">
+    ${watermarkHtml}
+    <div class="rp-header">
+      <div class="rp-logo-col">${logoHtml}</div>
+      <div class="rp-doctor-col">
+        <div class="rp-doctor-name">${this.format.doctor_nombre || 'Nombre del Médico'}</div>
+        <div class="rp-doctor-specialty">${this.format.doctor_especialidad || ''}</div>
+        ${codesHtml}
+      </div>
     </div>
+    <div class="rp-divider"></div>
+    <div class="doc-header">
+      <div class="doc-title">Evolución de Paciente</div>
+      <div class="patient-row">
+        <span><strong>Paciente:</strong> ${p.nombres} ${p.apellidos}</span>
+        <span><strong>Cédula:</strong> ${p.cedula_identidad || 'N/A'}</span>
+        <span><strong>Edad:</strong> ${p.edad || 'N/A'}</span>
+        <span><strong>Total consultas:</strong> ${histories.length}</span>
+      </div>
+    </div>
+    ${consultasHtml}
+    <div class="rp-divider"></div>
+    <div class="rp-footer">${footerHtml || '&nbsp;'}</div>
   </div>
-  ${consultasHtml}
   <script>window.onload=function(){window.print();}<\/script>
 </body>
 </html>`;

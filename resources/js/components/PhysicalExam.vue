@@ -367,6 +367,17 @@ export default {
       saving: false,
       successMsg: '',
       errorMsg: '',
+      format: {
+        doctor_nombre: '',
+        doctor_especialidad: '',
+        doctor_codigo_mmps: '',
+        doctor_codigo_cm: '',
+        doctor_ci: '',
+        doctor_logo: null,
+        doctor_fondo_agua: null,
+        doctor_direccion: '',
+        doctor_telefono: '',
+      },
       antecedentesList: [
         { key: 'alergia', label: 'Alergia' },
         { key: 'cardiopatia', label: 'Cardiopatía' },
@@ -391,6 +402,7 @@ export default {
   },
   mounted() {
     this.form.fecha = new Date().toISOString().split('T')[0];
+    this.loadFormat();
     this.loadExams();
   },
   methods: {
@@ -441,11 +453,31 @@ export default {
       };
     },
     calcIMC() {
-      if (this.form.peso && this.form.talla) {
-        const tallaM = this.form.talla / 100;
-        if (tallaM > 0) {
-          this.form.imc = (this.form.peso / (tallaM * tallaM)).toFixed(2);
-        }
+      const peso = parseFloat(this.form.peso);
+      const talla = parseFloat(this.form.talla);
+      if (!isNaN(peso) && !isNaN(talla) && peso > 0 && talla >= 50 && talla <= 250) {
+        const tallaM = talla / 100;
+        const imc = peso / (tallaM * tallaM);
+        this.form.imc = parseFloat(imc.toFixed(2));
+      } else {
+        this.form.imc = null;
+      }
+    },
+    async loadFormat() {
+      try {
+        const res = await axios.get('/api/recipe-format');
+        const d = res.data;
+        this.format.doctor_nombre = d.doctor_nombre || '';
+        this.format.doctor_especialidad = d.doctor_especialidad || '';
+        this.format.doctor_codigo_mmps = d.doctor_codigo_mmps || '';
+        this.format.doctor_codigo_cm = d.doctor_codigo_cm || '';
+        this.format.doctor_ci = d.doctor_ci || '';
+        this.format.doctor_logo = d.doctor_logo || null;
+        this.format.doctor_fondo_agua = d.doctor_fondo_agua || null;
+        this.format.doctor_direccion = d.doctor_direccion || '';
+        this.format.doctor_telefono = d.doctor_telefono || '';
+      } catch (e) {
+        console.error('Error loading format:', e);
       }
     },
     async loadExams() {
@@ -463,6 +495,22 @@ export default {
     },
     async saveExam() {
       if (!this.patient) return;
+
+      const peso = parseFloat(this.form.peso);
+      const talla = parseFloat(this.form.talla);
+      if (this.form.peso && (isNaN(peso) || peso <= 0 || peso > 500)) {
+        this.errorMsg = 'Verifique el peso (debe estar entre 0.5 y 500 kg)';
+        return;
+      }
+      if (this.form.talla && (isNaN(talla) || talla < 10 || talla > 250)) {
+        this.errorMsg = 'Verifique la talla (debe estar entre 10 y 250 cm)';
+        return;
+      }
+      if (this.form.imc && (this.form.imc < 0 || this.form.imc > 100)) {
+        this.errorMsg = 'El IMC calculado no es válido. Revise peso y talla';
+        return;
+      }
+
       this.saving = true;
       this.successMsg = '';
       this.errorMsg = '';
@@ -512,14 +560,32 @@ export default {
         .map(a => a.label)
         .join(', ');
 
+      const logoHtml = this.format.doctor_logo
+        ? `<img src="${this.format.doctor_logo}" class="rp-logo" alt="logo" crossorigin="anonymous" />`
+        : `<div class="rp-logo-empty"></div>`;
+
+      const watermarkHtml = this.format.doctor_fondo_agua
+        ? `<div class="recipe-watermark"><img src="${this.format.doctor_fondo_agua}" alt="fondo" crossorigin="anonymous" /></div>`
+        : '';
+
+      const codeParts = [];
+      if (this.format.doctor_codigo_mmps) codeParts.push(`MMPS: ${this.format.doctor_codigo_mmps}`);
+      if (this.format.doctor_codigo_cm) codeParts.push(`CM: ${this.format.doctor_codigo_cm}`);
+      if (this.format.doctor_ci) codeParts.push(`CI: ${this.format.doctor_ci}`);
+      const codesHtml = codeParts.length ? `<div class="rp-doctor-codes">${codeParts.join('&nbsp;&nbsp;')}</div>` : '';
+
+      let footerHtml = '';
+      if (this.format.doctor_direccion) footerHtml += `<div>${this.format.doctor_direccion}</div>`;
+      if (this.format.doctor_telefono) footerHtml += `<div>${this.format.doctor_telefono}</div>`;
+
       return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Examen Físico - ${p.nombres || ''} ${p.apellidos || ''}</title>
 <style>
+  * { box-sizing: border-box; }
   body { font-family: 'Times New Roman', serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }
-  h1 { text-align: center; color: #1e3c72; font-size: 20px; margin-bottom: 5px; }
   h2 { color: #1e3c72; font-size: 16px; border-bottom: 2px solid #1e3c72; padding-bottom: 4px; margin-top: 20px; }
   h3 { color: #2a5298; font-size: 14px; margin-top: 15px; }
   .patient-info { margin-bottom: 15px; font-size: 13px; }
@@ -530,19 +596,40 @@ export default {
   .full { grid-column: 1 / -1; }
   .label { color: #666; font-weight: bold; }
   .value { color: #333; }
-  .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc; font-size: 11px; text-align: center; color: #666; }
+  .rp-logo { width:64px; height:64px; object-fit:contain; }
+  .rp-logo-empty { width:64px; height:64px; }
+  .recipe-watermark { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:55%; z-index:0; pointer-events:none; }
+  .recipe-watermark img { width:100%; opacity:0.1; object-fit:contain; }
+  .rp-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; position:relative; z-index:1; }
+  .rp-doctor-col { flex:1; }
+  .rp-doctor-name { font-size:16px; font-weight:bold; color:#1a3a6e; margin-bottom:2px; }
+  .rp-doctor-specialty { font-size:12px; color:#3949ab; font-style:italic; margin-bottom:4px; }
+  .rp-doctor-codes { font-size:11px; color:#546e7a; }
+  .rp-divider { height:2px; background:linear-gradient(90deg,#1e3c72,#2a5298); margin:8px 0; border-radius:1px; position:relative; z-index:1; }
+  .page-wrap { position:relative; z-index:1; }
+  .rp-footer { text-align:center; font-size:10px; color:#546e7a; line-height:1.8; margin-top:20px; position:relative; z-index:1; }
   @media print { body { padding: 10px; } }
 </style>
 </head>
 <body>
-  <h1>SVMI - Sociedad Venezolana de Medicina Interna</h1>
-  <div class="patient-info">
-    <strong>Paciente:</strong> ${p.nombres || ''} ${p.apellidos || ''} |
-    <strong>Edad:</strong> ${p.edad || 'N/A'} |
-    <strong>Sexo:</strong> ${p.sexo || 'N/A'} |
-    <strong>C.I.:</strong> ${p.cedula_identidad || 'N/A'} |
-    <strong>Fecha:</strong> ${this.formatDate(f.fecha)}
-  </div>
+  <div class="page-wrap">
+    ${watermarkHtml}
+    <div class="rp-header">
+      <div class="rp-logo-col">${logoHtml}</div>
+      <div class="rp-doctor-col">
+        <div class="rp-doctor-name">${this.format.doctor_nombre || 'Nombre del Médico'}</div>
+        <div class="rp-doctor-specialty">${this.format.doctor_especialidad || ''}</div>
+        ${codesHtml}
+      </div>
+    </div>
+    <div class="rp-divider"></div>
+    <div class="patient-info">
+      <strong>Paciente:</strong> ${p.nombres || ''} ${p.apellidos || ''} |
+      <strong>Edad:</strong> ${p.edad || 'N/A'} |
+      <strong>Sexo:</strong> ${p.sexo || 'N/A'} |
+      <strong>C.I.:</strong> ${p.cedula_identidad || 'N/A'} |
+      <strong>Fecha:</strong> ${this.formatDate(f.fecha)}
+    </div>
 
   <h2>Antecedentes de Importancia</h2>
   <div class="section">${antChecked || 'Ninguno'}</div>
@@ -655,8 +742,8 @@ export default {
   ${f.tratamiento_farmacologico ? `<div class="section"><span class="label">Tratamiento:</span> ${f.tratamiento_farmacologico}</div>` : ''}
   ${f.proximos_estudios ? `<div class="section"><span class="label">Próximos Estudios:</span> ${f.proximos_estudios}</div>` : ''}
 
-  <div class="footer">
-    <p>Documento generado por Sistema de Gestión Médica</p>
+    <div class="rp-divider"></div>
+    <div class="rp-footer">${footerHtml || '&nbsp;'}</div>
   </div>
 </body>
 </html>`;
